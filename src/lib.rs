@@ -82,7 +82,7 @@ impl Millis {
     /// use monotonic_time_rs::Millis;
     /// let current = Millis::new(0x00010000);
     /// let lower = current.to_lower();
-    /// let reconstructed = current.from_lower_bits(lower).unwrap();
+    /// let reconstructed = current.from_lower(lower).unwrap();
     /// assert_eq!(reconstructed, current);
     /// ```
     pub fn from_lower(&self, lower_bits: MillisLow16) -> Option<Millis> {
