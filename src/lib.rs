@@ -4,7 +4,7 @@
  */
 
 use std::fmt;
-use std::ops::Sub;
+use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::{Duration, Instant};
 
 /// Represents a monotonic absolute timestamp with millisecond resolution.
@@ -39,10 +39,10 @@ impl Millis {
     /// ```
     /// use monotonic_time_rs::Millis;
     /// let timestamp = Millis::new(1_614_834_000);
-    /// assert_eq!(timestamp.milliseconds(), 1_614_834_000);
+    /// assert_eq!(timestamp.absolute_milliseconds(), 1_614_834_000);
     /// ```
     #[inline]
-    pub fn milliseconds(&self) -> u64 {
+    pub fn absolute_milliseconds(&self) -> u64 {
         self.0
     }
 
@@ -181,7 +181,7 @@ impl Millis {
     /// let start = Millis::new(1000);
     /// let end = Millis::new(5000);
     /// let duration = end.checked_duration_since_ms(start).unwrap();
-    /// assert_eq!(duration.milliseconds(), 4000);
+    /// assert_eq!(duration.as_millis(), 4000);
     /// ```
     pub fn checked_duration_since_ms(&self, earlier: Millis) -> Option<MillisDuration> {
         if self.0 >= earlier.0 {
@@ -212,11 +212,39 @@ impl Millis {
     /// let start = Millis::new(1000);
     /// let end = Millis::new(5000);
     /// let duration = end.duration_since_ms(start);
-    /// assert_eq!(duration.milliseconds(), 4000);
+    /// assert_eq!(duration.as_millis(), 4000);
     /// ```
     pub fn duration_since_ms(&self, earlier: Millis) -> MillisDuration {
         self.checked_duration_since_ms(earlier)
             .expect("Millis::duration_since_ms called with a later timestamp")
+    }
+}
+
+impl AddAssign<MillisDuration> for Millis {
+    fn add_assign(&mut self, other: MillisDuration) {
+        self.0 += other.0;
+    }
+}
+
+impl SubAssign<MillisDuration> for Millis {
+    fn sub_assign(&mut self, other: MillisDuration) {
+        self.0 -= other.0;
+    }
+}
+
+impl Add<MillisDuration> for Millis {
+    type Output = Self;
+
+    fn add(self, other: MillisDuration) -> Self::Output {
+        Self(self.0 + other.0)
+    }
+}
+
+impl Sub<MillisDuration> for Millis {
+    type Output = Self;
+
+    fn sub(self, other: MillisDuration) -> Self::Output {
+        Self(self.0 - other.0)
     }
 }
 
@@ -244,8 +272,26 @@ impl MillisDuration {
     /// let duration = MillisDuration::from_millis(4000);
     /// ```
     #[inline]
-    pub fn from_millis(millis: u64) -> Self {
+    pub const fn from_millis(millis: u64) -> Self {
         Self(millis)
+    }
+
+    /// Creates a new `MillisDuration` from a number of seconds.
+    /// Returns an error if the input is negative.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use monotonic_time_rs::MillisDuration;
+    /// let duration = MillisDuration::from_secs(2.5).unwrap();
+    /// assert_eq!(duration.as_millis(), 2500);
+    /// ```
+    #[inline]
+    pub fn from_secs(seconds: f32) -> Result<Self, &'static str> {
+        if seconds < 0.0 {
+            return Err("must be a positive value");
+        }
+        Ok(Self((seconds * 1000.0) as u64))
     }
 
     /// Returns the duration in milliseconds.
@@ -255,11 +301,15 @@ impl MillisDuration {
     /// ```
     /// use monotonic_time_rs::MillisDuration;
     /// let duration = MillisDuration::from_millis(4000);
-    /// assert_eq!(duration.milliseconds(), 4000);
+    /// assert_eq!(duration.as_millis(), 4000);
     /// ```
     #[inline]
-    pub fn milliseconds(&self) -> u64 {
+    pub fn as_millis(&self) -> u64 {
         self.0
+    }
+
+    pub fn as_secs(&self) -> f32 {
+        self.0 as f32 / 1000.0
     }
 }
 
@@ -296,7 +346,7 @@ impl From<MillisDuration> for u64 {
 /// let start = Millis::new(1000);
 /// let end = Millis::new(5000);
 /// let duration = end - start;
-/// assert_eq!(duration.milliseconds(), 4000);
+/// assert_eq!(duration.as_millis(), 4000);
 /// ```
 impl Sub for Millis {
     type Output = MillisDuration;
@@ -409,7 +459,7 @@ impl MonotonicClock for InstantMonotonicClock {
     /// let clock = InstantMonotonicClock::new();
     /// std::thread::sleep(std::time::Duration::from_millis(500));
     /// let current_time = clock.now();
-    /// assert!(current_time.milliseconds() >= 500);
+    /// assert!(current_time.absolute_milliseconds() >= 500);
     /// ```
     fn now(&self) -> Millis {
         let duration = Instant::now().duration_since(self.started);
