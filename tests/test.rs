@@ -58,3 +58,91 @@ fn illegal_assign_sub() {
     let mut now = Millis::new(0);
     now -= MillisDuration::from_secs(2.0).unwrap();
 }
+
+#[test_log::test]
+fn from_lower() {
+    let now = Millis::new(0x12345678);
+    let lower = now.to_lower();
+    let reconstructed = now.from_lower(lower).unwrap();
+    assert_eq!(reconstructed, now);
+}
+
+#[test_log::test]
+fn multiply_duration() {
+    let duration = MillisDuration::from_millis(800);
+
+    let scaled_duration = duration * 1.5;
+
+    assert_eq!(scaled_duration, MillisDuration::from_millis(1200));
+}
+
+#[test_log::test]
+fn multiply_duration_after() {
+    let duration = MillisDuration::from_millis(800);
+
+    let scaled_duration = 1.5 * duration;
+
+    assert_eq!(scaled_duration, MillisDuration::from_millis(1200));
+}
+
+#[test_log::test]
+fn multiply_int_duration() {
+    let duration = MillisDuration::from_millis(800);
+
+    let scaled_duration = duration * 2;
+
+    assert_eq!(scaled_duration, MillisDuration::from_millis(1600));
+}
+
+#[test_log::test]
+fn multiply_duration_int_after() {
+    let duration = MillisDuration::from_millis(800);
+
+    let scaled_duration = 4 * duration;
+
+    assert_eq!(scaled_duration, MillisDuration::from_millis(3200));
+}
+
+#[test_log::test]
+fn diff_duration() {
+    let duration = MillisDuration::from_millis(1500);
+    let duration_greater = MillisDuration::from_millis(2000);
+
+    let diff = duration_greater - duration;
+
+    assert_eq!(diff, MillisDuration::from_millis(500));
+}
+
+#[test_log::test]
+fn div_duration() {
+    let duration_greater = MillisDuration::from_millis(3000);
+
+    let diff = duration_greater / 30;
+
+    assert_eq!(diff, MillisDuration::from_millis(100));
+}
+
+#[test_log::test]
+fn sub_assign() {
+    let mut duration = MillisDuration::from_millis(3000);
+    duration -= MillisDuration::from_millis(100);
+
+    assert_eq!(duration, MillisDuration::from_millis(2900));
+}
+
+#[test_log::test]
+fn add_durations() {
+    let duration = MillisDuration::from_millis(3000);
+    let delta = MillisDuration::from_millis(100);
+
+    assert_eq!(duration + delta, MillisDuration::from_millis(3100));
+}
+
+#[test_log::test]
+fn add_assign_durations() {
+    let mut duration = MillisDuration::from_millis(3000);
+    let delta = MillisDuration::from_millis(100);
+    duration += delta;
+
+    assert_eq!(duration, MillisDuration::from_millis(3100));
+}

@@ -4,7 +4,7 @@
  */
 
 use std::fmt;
-use std::ops::{Add, AddAssign, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::time::{Duration, Instant};
 
 /// Represents a monotonic absolute timestamp with millisecond resolution.
@@ -330,6 +330,106 @@ impl From<MillisDuration> for u64 {
     #[inline]
     fn from(duration: MillisDuration) -> Self {
         duration.0
+    }
+}
+
+impl Mul<f32> for MillisDuration {
+    type Output = MillisDuration;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::from_millis(((self.0 as f32) * rhs) as u64)
+    }
+}
+
+impl Mul<MillisDuration> for f32 {
+    type Output = MillisDuration;
+
+    fn mul(self, rhs: MillisDuration) -> Self::Output {
+        MillisDuration::from_millis((self * (rhs.0 as f32)) as u64)
+    }
+}
+
+impl Mul<u32> for MillisDuration {
+    type Output = MillisDuration;
+    #[inline]
+    fn mul(self, rhs: u32) -> Self::Output {
+        Self::from_millis(((self.0 as u32) * rhs) as u64)
+    }
+}
+
+impl Mul<MillisDuration> for u32 {
+    type Output = MillisDuration;
+
+    #[inline]
+    fn mul(self, rhs: MillisDuration) -> Self::Output {
+        MillisDuration::from_millis((self * (rhs.0 as u32)) as u64)
+    }
+}
+
+impl Add for MillisDuration {
+    type Output = MillisDuration;
+
+    #[inline]
+    fn add(self, rhs: MillisDuration) -> MillisDuration {
+        MillisDuration::from_millis(
+            self.0
+                .checked_add(rhs.0)
+                .expect("overflow on add millisduration"),
+        )
+    }
+}
+
+impl AddAssign for MillisDuration {
+    #[inline]
+    fn add_assign(&mut self, rhs: MillisDuration) {
+        *self = *self + rhs;
+    }
+}
+
+impl Sub for MillisDuration {
+    type Output = MillisDuration;
+
+    #[inline]
+    fn sub(self, rhs: MillisDuration) -> MillisDuration {
+        Self::from_millis(
+            self.0
+                .checked_sub(rhs.0)
+                .expect("overflow on sub millisduration"),
+        )
+    }
+}
+
+impl SubAssign for MillisDuration {
+    #[inline]
+    fn sub_assign(&mut self, rhs: MillisDuration) {
+        *self = *self - rhs;
+    }
+}
+
+impl MulAssign<u32> for MillisDuration {
+    #[inline]
+    fn mul_assign(&mut self, rhs: u32) {
+        *self = *self * rhs;
+    }
+}
+
+impl Div<u32> for MillisDuration {
+    type Output = MillisDuration;
+
+    #[inline]
+    fn div(self, rhs: u32) -> MillisDuration {
+        Self::from_millis(
+            self.0
+                .checked_div(rhs as u64)
+                .expect("divide by zero error millisduration"),
+        )
+    }
+}
+
+impl DivAssign<u32> for MillisDuration {
+    #[inline]
+    fn div_assign(&mut self, rhs: u32) {
+        *self = *self / rhs;
     }
 }
 
