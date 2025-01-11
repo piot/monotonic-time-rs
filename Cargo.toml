@@ -9,6 +9,11 @@ repository = "https://github.com/piot/monotonic-time-rs"
 
 [dependencies]
 
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = { version = "0.3.76", features = ["Performance", "Window"] }
+wasm-bindgen = "0.2.99"
+
 [dev-dependencies]
 test-log = "^0.2.16"
 log = "0.4.22"

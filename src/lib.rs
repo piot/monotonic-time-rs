@@ -2,6 +2,7 @@
  * Copyright (c) Peter Bjorklund. All rights reserved. https://github.com/piot/monotonic-time-rs
  * Licensed under the MIT License. See LICENSE in the project root for license information.
  */
+pub mod wasm;
 
 use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
@@ -564,5 +565,16 @@ impl MonotonicClock for InstantMonotonicClock {
     fn now(&self) -> Millis {
         let duration = Instant::now().duration_since(self.started);
         Millis::new(duration.as_millis() as u64)
+    }
+}
+
+pub fn create_monotonic_clock() -> impl MonotonicClock {
+    #[cfg(target_arch = "wasm32")]
+    {
+        WasmMonotonicClock::new()
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        InstantMonotonicClock::new()
     }
 }
