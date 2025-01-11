@@ -570,6 +570,8 @@ impl MonotonicClock for InstantMonotonicClock {
 
 pub fn create_monotonic_clock() -> impl MonotonicClock {
     #[cfg(target_arch = "wasm32")]
+    use crate::wasm::WasmMonotonicClock;
+    #[cfg(target_arch = "wasm32")]
     {
         WasmMonotonicClock::new()
     }
