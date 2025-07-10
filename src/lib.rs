@@ -8,6 +8,8 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::time::{Duration, Instant};
 
+use num_traits::{Bounded, ToPrimitive};
+
 /// Represents a monotonic absolute timestamp with millisecond resolution.
 ///
 /// This struct encapsulates a `u64` value representing the number of milliseconds since a
@@ -256,7 +258,7 @@ impl Sub<MillisDuration> for Millis {
 pub type MillisLow16 = u16;
 
 /// Represents a duration in milliseconds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct MillisDuration(u64);
 
 impl MillisDuration {
@@ -434,6 +436,66 @@ impl DivAssign<u32> for MillisDuration {
     }
 }
 
+impl Div<u64> for MillisDuration {
+    type Output = MillisDuration;
+
+    #[inline]
+    fn div(self, rhs: u64) -> MillisDuration {
+        Self::from_millis(
+            self.0
+                .checked_div(rhs)
+                .expect("divide by zero error millisduration"),
+        )
+    }
+}
+
+impl DivAssign<u64> for MillisDuration {
+    #[inline]
+    fn div_assign(&mut self, rhs: u64) {
+        *self = *self / rhs;
+    }
+}
+
+
+impl Div<MillisDuration> for MillisDuration {
+    type Output = MillisDuration;
+
+    fn div(self, rhs: MillisDuration) -> Self::Output {
+        self/rhs.0
+    }
+}
+
+impl DivAssign<MillisDuration> for MillisDuration {
+    #[inline]
+    fn div_assign(&mut self, rhs: MillisDuration) {
+        *self = *self / rhs;
+    }
+}
+
+impl Bounded for MillisDuration {
+    fn min_value() -> Self {
+        MillisDuration(0)
+    }
+
+    fn max_value() -> Self {
+        MillisDuration(u64::MAX)
+    }
+}
+
+impl ToPrimitive for MillisDuration {
+    fn to_i64(&self) -> Option<i64> {
+        match i64::try_from(self.0) {
+            Ok(x) => Some(x),
+            Err(_) => None,
+        }
+    }
+
+    fn to_u64(&self) -> Option<u64> {
+        Some(self.0)
+    }
+}
+
+
 /// Implements subtraction between two `Millis` instances, returning a `MillisDuration`.
 ///
 /// # Panics
@@ -477,6 +539,7 @@ impl From<Millis> for u64 {
         millis.0
     }
 }
+
 
 impl fmt::Display for Millis {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

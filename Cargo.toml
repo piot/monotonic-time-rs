@@ -1,6 +1,6 @@
 [package]
 name = "monotonic-time-rs"
-version = "0.0.9"
+version = "0.0.10"
 edition = "2021"
 license = "MIT"
 description = "Monotonic Time"
@@ -8,6 +8,7 @@ repository = "https://github.com/piot/monotonic-time-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+num-traits = "0.2"
 
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
