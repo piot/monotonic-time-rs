@@ -8,8 +8,7 @@ repository = "https://github.com/piot/monotonic-time-rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-traits = "0.2"
-
+num-traits = {version="0.2", optional = true}
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.76", features = ["Performance", "Window"] }
@@ -18,3 +17,7 @@ wasm-bindgen = "0.2.99"
 [dev-dependencies]
 test-log = "^0.2.16"
 log = "0.4.22"
+
+[features]
+metricator-compat = ["dep:num-traits"]
+default = []

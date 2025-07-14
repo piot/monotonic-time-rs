@@ -8,7 +8,8 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::time::{Duration, Instant};
 
-use num_traits::{Bounded, ToPrimitive};
+#[cfg(feature = "metricator-compat")]
+pub mod num;
 
 /// Represents a monotonic absolute timestamp with millisecond resolution.
 ///
@@ -456,12 +457,11 @@ impl DivAssign<u64> for MillisDuration {
     }
 }
 
-
 impl Div<MillisDuration> for MillisDuration {
     type Output = MillisDuration;
 
     fn div(self, rhs: MillisDuration) -> Self::Output {
-        self/rhs.0
+        self / rhs.0
     }
 }
 
@@ -471,30 +471,6 @@ impl DivAssign<MillisDuration> for MillisDuration {
         *self = *self / rhs;
     }
 }
-
-impl Bounded for MillisDuration {
-    fn min_value() -> Self {
-        MillisDuration(0)
-    }
-
-    fn max_value() -> Self {
-        MillisDuration(u64::MAX)
-    }
-}
-
-impl ToPrimitive for MillisDuration {
-    fn to_i64(&self) -> Option<i64> {
-        match i64::try_from(self.0) {
-            Ok(x) => Some(x),
-            Err(_) => None,
-        }
-    }
-
-    fn to_u64(&self) -> Option<u64> {
-        Some(self.0)
-    }
-}
-
 
 /// Implements subtraction between two `Millis` instances, returning a `MillisDuration`.
 ///
@@ -519,8 +495,7 @@ impl Sub for Millis {
             MillisDuration::from_millis(self.0 - other.0)
         } else {
             panic!(
-                "Attempted to subtract a later Millis from an earlier one: {:?} - {:?}",
-                self, other
+                "Attempted to subtract a later Millis from an earlier one: {self:?} - {other:?}"
             );
         }
     }
@@ -539,7 +514,6 @@ impl From<Millis> for u64 {
         millis.0
     }
 }
-
 
 impl fmt::Display for Millis {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
