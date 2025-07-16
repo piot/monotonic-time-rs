@@ -1,5 +1,5 @@
-use num_traits::{Bounded, ToPrimitive};
-
+pub use num_traits::{Bounded, ToPrimitive};
+use crate::MillisDuration;
 impl Bounded for MillisDuration {
     fn min_value() -> Self {
         MillisDuration(0)
