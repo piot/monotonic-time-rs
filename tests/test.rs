@@ -117,7 +117,7 @@ fn diff_duration() {
 fn div_duration() {
     let duration_greater = MillisDuration::from_millis(3000);
 
-    let diff = duration_greater / 30;
+    let diff = duration_greater / 30_u32;
 
     assert_eq!(diff, MillisDuration::from_millis(100));
 }

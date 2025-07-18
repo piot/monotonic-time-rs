@@ -8,6 +8,9 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::time::{Duration, Instant};
 
+#[cfg(feature = "metricator-compat")]
+pub mod num;
+
 /// Represents a monotonic absolute timestamp with millisecond resolution.
 ///
 /// This struct encapsulates a `u64` value representing the number of milliseconds since a
@@ -256,7 +259,7 @@ impl Sub<MillisDuration> for Millis {
 pub type MillisLow16 = u16;
 
 /// Represents a duration in milliseconds.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub struct MillisDuration(u64);
 
 impl MillisDuration {
@@ -434,6 +437,41 @@ impl DivAssign<u32> for MillisDuration {
     }
 }
 
+impl Div<u64> for MillisDuration {
+    type Output = MillisDuration;
+
+    #[inline]
+    fn div(self, rhs: u64) -> MillisDuration {
+        Self::from_millis(
+            self.0
+                .checked_div(rhs)
+                .expect("divide by zero error millisduration"),
+        )
+    }
+}
+
+impl DivAssign<u64> for MillisDuration {
+    #[inline]
+    fn div_assign(&mut self, rhs: u64) {
+        *self = *self / rhs;
+    }
+}
+
+impl Div<MillisDuration> for MillisDuration {
+    type Output = MillisDuration;
+
+    fn div(self, rhs: MillisDuration) -> Self::Output {
+        self / rhs.0
+    }
+}
+
+impl DivAssign<MillisDuration> for MillisDuration {
+    #[inline]
+    fn div_assign(&mut self, rhs: MillisDuration) {
+        *self = *self / rhs;
+    }
+}
+
 /// Implements subtraction between two `Millis` instances, returning a `MillisDuration`.
 ///
 /// # Panics
@@ -457,8 +495,7 @@ impl Sub for Millis {
             MillisDuration::from_millis(self.0 - other.0)
         } else {
             panic!(
-                "Attempted to subtract a later Millis from an earlier one: {:?} - {:?}",
-                self, other
+                "Attempted to subtract a later Millis from an earlier one: {self:?} - {other:?}"
             );
         }
     }
