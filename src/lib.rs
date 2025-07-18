@@ -8,7 +8,7 @@ use std::fmt;
 use std::ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign};
 use std::time::{Duration, Instant};
 
-#[cfg(feature = "metricator-compat")]
+#[cfg(feature = "generic-numerics")]
 pub mod num;
 
 /// Represents a monotonic absolute timestamp with millisecond resolution.
@@ -32,7 +32,7 @@ impl Millis {
     /// let timestamp = Millis::new(1_614_834_000);
     /// ```
     #[inline]
-    pub fn new(absolute_time: u64) -> Self {
+    #[must_use] pub const fn new(absolute_time: u64) -> Self {
         Self(absolute_time)
     }
 
@@ -46,7 +46,7 @@ impl Millis {
     /// assert_eq!(timestamp.absolute_milliseconds(), 1_614_834_000);
     /// ```
     #[inline]
-    pub fn absolute_milliseconds(&self) -> u64 {
+    #[must_use] pub const fn absolute_milliseconds(&self) -> u64 {
         self.0
     }
 
@@ -63,7 +63,7 @@ impl Millis {
     /// let lower_bits = timestamp.to_lower();
     /// assert_eq!(lower_bits, 0x5678);
     /// ```
-    pub const fn to_lower(&self) -> MillisLow16 {
+    #[must_use] pub const fn to_lower(&self) -> MillisLow16 {
         (self.0 & 0xffff) as u16
     }
 
@@ -89,12 +89,12 @@ impl Millis {
     /// let reconstructed = current.from_lower(lower).unwrap();
     /// assert_eq!(reconstructed, current);
     /// ```
-    pub fn from_lower(&self, lower_bits: MillisLow16) -> Option<Millis> {
+    #[must_use] pub fn from_lower(&self, lower_bits: MillisLow16) -> Option<Self> {
         let now_bits = (self.0 & 0xffff) as u16;
         let received_lower_bits = lower_bits;
         let top: u64 = self.0 & 0xffffffffffff0000;
 
-        let mut received_monotonic = top | (received_lower_bits as u64);
+        let mut received_monotonic = top | u64::from(received_lower_bits);
 
         // Adjust for wrap-around if lower bits have wrapped
         if received_lower_bits > now_bits {
@@ -107,7 +107,7 @@ impl Millis {
             return None;
         }
 
-        Some(Millis::new(received_monotonic))
+        Some(Self::new(received_monotonic))
     }
 
     /// Calculates the duration since another `Millis`.
@@ -134,7 +134,7 @@ impl Millis {
     /// let duration = end.duration_since(start);
     /// assert_eq!(duration, Duration::from_millis(4000));
     /// ```
-    pub fn duration_since(&self, earlier: Millis) -> Duration {
+    #[must_use] pub const fn duration_since(&self, earlier: Self) -> Duration {
         self.checked_duration_since(earlier)
             .expect("Millis::duration_since called with a later timestamp")
     }
@@ -159,7 +159,7 @@ impl Millis {
     /// let end = Millis::new(5000);
     /// assert_eq!(end.checked_duration_since(start), Some(Duration::from_millis(4000)));
     /// ```
-    pub fn checked_duration_since(&self, earlier: Millis) -> Option<Duration> {
+    #[must_use] pub const fn checked_duration_since(&self, earlier: Self) -> Option<Duration> {
         if self.0 >= earlier.0 {
             Some(Duration::from_millis(self.0 - earlier.0))
         } else {
@@ -187,7 +187,7 @@ impl Millis {
     /// let duration = end.checked_duration_since_ms(start).unwrap();
     /// assert_eq!(duration.as_millis(), 4000);
     /// ```
-    pub fn checked_duration_since_ms(&self, earlier: Millis) -> Option<MillisDuration> {
+    #[must_use] pub const fn checked_duration_since_ms(&self, earlier: Self) -> Option<MillisDuration> {
         if self.0 >= earlier.0 {
             Some(MillisDuration::from_millis(self.0 - earlier.0))
         } else {
@@ -218,7 +218,7 @@ impl Millis {
     /// let duration = end.duration_since_ms(start);
     /// assert_eq!(duration.as_millis(), 4000);
     /// ```
-    pub fn duration_since_ms(&self, earlier: Millis) -> MillisDuration {
+    #[must_use] pub const fn duration_since_ms(&self, earlier: Self) -> MillisDuration {
         self.checked_duration_since_ms(earlier)
             .expect("Millis::duration_since_ms called with a later timestamp")
     }
@@ -276,7 +276,7 @@ impl MillisDuration {
     /// let duration = MillisDuration::from_millis(4000);
     /// ```
     #[inline]
-    pub const fn from_millis(millis: u64) -> Self {
+    #[must_use] pub const fn from_millis(millis: u64) -> Self {
         Self(millis)
     }
 
@@ -308,11 +308,11 @@ impl MillisDuration {
     /// assert_eq!(duration.as_millis(), 4000);
     /// ```
     #[inline]
-    pub fn as_millis(&self) -> u64 {
+    #[must_use] pub const fn as_millis(&self) -> u64 {
         self.0
     }
 
-    pub fn as_secs(&self) -> f32 {
+    #[must_use] pub fn as_secs(&self) -> f32 {
         self.0 as f32 / 1000.0
     }
 }
@@ -326,7 +326,7 @@ impl fmt::Display for MillisDuration {
 impl From<u64> for MillisDuration {
     #[inline]
     fn from(ms: u64) -> Self {
-        MillisDuration::from_millis(ms)
+        Self::from_millis(ms)
     }
 }
 
@@ -338,7 +338,7 @@ impl From<MillisDuration> for u64 {
 }
 
 impl Mul<f32> for MillisDuration {
-    type Output = MillisDuration;
+    type Output = Self;
 
     fn mul(self, rhs: f32) -> Self::Output {
         Self::from_millis(((self.0 as f32) * rhs) as u64)
@@ -349,15 +349,15 @@ impl Mul<MillisDuration> for f32 {
     type Output = MillisDuration;
 
     fn mul(self, rhs: MillisDuration) -> Self::Output {
-        MillisDuration::from_millis((self * (rhs.0 as f32)) as u64)
+        MillisDuration::from_millis((self * (rhs.0 as Self)) as u64)
     }
 }
 
 impl Mul<u32> for MillisDuration {
-    type Output = MillisDuration;
+    type Output = Self;
     #[inline]
     fn mul(self, rhs: u32) -> Self::Output {
-        Self::from_millis(((self.0 as u32) * rhs) as u64)
+        Self::from_millis(u64::from((self.0 as u32) * rhs))
     }
 }
 
@@ -366,16 +366,16 @@ impl Mul<MillisDuration> for u32 {
 
     #[inline]
     fn mul(self, rhs: MillisDuration) -> Self::Output {
-        MillisDuration::from_millis((self * (rhs.0 as u32)) as u64)
+        MillisDuration::from_millis(u64::from(self * (rhs.0 as Self)))
     }
 }
 
 impl Add for MillisDuration {
-    type Output = MillisDuration;
+    type Output = Self;
 
     #[inline]
-    fn add(self, rhs: MillisDuration) -> MillisDuration {
-        MillisDuration::from_millis(
+    fn add(self, rhs: Self) -> Self {
+        Self::from_millis(
             self.0
                 .checked_add(rhs.0)
                 .expect("overflow on add millisduration"),
@@ -385,16 +385,16 @@ impl Add for MillisDuration {
 
 impl AddAssign for MillisDuration {
     #[inline]
-    fn add_assign(&mut self, rhs: MillisDuration) {
+    fn add_assign(&mut self, rhs: Self) {
         *self = *self + rhs;
     }
 }
 
 impl Sub for MillisDuration {
-    type Output = MillisDuration;
+    type Output = Self;
 
     #[inline]
-    fn sub(self, rhs: MillisDuration) -> MillisDuration {
+    fn sub(self, rhs: Self) -> Self {
         Self::from_millis(
             self.0
                 .checked_sub(rhs.0)
@@ -405,7 +405,7 @@ impl Sub for MillisDuration {
 
 impl SubAssign for MillisDuration {
     #[inline]
-    fn sub_assign(&mut self, rhs: MillisDuration) {
+    fn sub_assign(&mut self, rhs: Self) {
         *self = *self - rhs;
     }
 }
@@ -418,13 +418,13 @@ impl MulAssign<u32> for MillisDuration {
 }
 
 impl Div<u32> for MillisDuration {
-    type Output = MillisDuration;
+    type Output = Self;
 
     #[inline]
-    fn div(self, rhs: u32) -> MillisDuration {
+    fn div(self, rhs: u32) -> Self {
         Self::from_millis(
             self.0
-                .checked_div(rhs as u64)
+                .checked_div(u64::from(rhs))
                 .expect("divide by zero error millisduration"),
         )
     }
@@ -438,10 +438,10 @@ impl DivAssign<u32> for MillisDuration {
 }
 
 impl Div<u64> for MillisDuration {
-    type Output = MillisDuration;
+    type Output = Self;
 
     #[inline]
-    fn div(self, rhs: u64) -> MillisDuration {
+    fn div(self, rhs: u64) -> Self {
         Self::from_millis(
             self.0
                 .checked_div(rhs)
@@ -457,17 +457,17 @@ impl DivAssign<u64> for MillisDuration {
     }
 }
 
-impl Div<MillisDuration> for MillisDuration {
-    type Output = MillisDuration;
+impl Div<Self> for MillisDuration {
+    type Output = Self;
 
-    fn div(self, rhs: MillisDuration) -> Self::Output {
+    fn div(self, rhs: Self) -> Self::Output {
         self / rhs.0
     }
 }
 
-impl DivAssign<MillisDuration> for MillisDuration {
+impl DivAssign<Self> for MillisDuration {
     #[inline]
-    fn div_assign(&mut self, rhs: MillisDuration) {
+    fn div_assign(&mut self, rhs: Self) {
         *self = *self / rhs;
     }
 }
@@ -490,7 +490,7 @@ impl DivAssign<MillisDuration> for MillisDuration {
 impl Sub for Millis {
     type Output = MillisDuration;
 
-    fn sub(self, other: Millis) -> MillisDuration {
+    fn sub(self, other: Self) -> MillisDuration {
         if self.0 >= other.0 {
             MillisDuration::from_millis(self.0 - other.0)
         } else {
@@ -504,7 +504,7 @@ impl Sub for Millis {
 impl From<u64> for Millis {
     #[inline]
     fn from(ms: u64) -> Self {
-        Millis::new(ms)
+        Self::new(ms)
     }
 }
 
@@ -574,7 +574,7 @@ impl InstantMonotonicClock {
     /// use monotonic_time_rs::InstantMonotonicClock;
     /// let clock = InstantMonotonicClock::new();
     /// ```
-    pub fn new() -> Self {
+    #[must_use] pub fn new() -> Self {
         Self {
             started: Instant::now(),
         }
@@ -605,7 +605,7 @@ impl MonotonicClock for InstantMonotonicClock {
     }
 }
 
-pub fn create_monotonic_clock() -> impl MonotonicClock {
+#[must_use] pub fn create_monotonic_clock() -> impl MonotonicClock {
     #[cfg(target_arch = "wasm32")]
     use crate::wasm::WasmMonotonicClock;
     #[cfg(target_arch = "wasm32")]
